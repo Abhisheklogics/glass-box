@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Glass Box Simulator - Dark Mode</title>
+<style>
+  /* ---------- GLOBAL & DARK MODE ---------- */
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #121212;
+    color: #eee;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+  }
+#actual {
+  margin-bottom: 4px;  /* each line ke baad thoda gap */
+  white-space: pre;    /* spaces & indentation preserve ho */
+}
+
+  h1 {
+    margin: 20px 0 10px 0;
+    font-size: 28px;
+    color: #fff;
+  }
+
+  .container {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  /* ---------- PANELS ---------- */
+  .panel {
+    background: #1e1e1e;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+  }
+
+  .input-panel {
+    flex: 1 1 280px;
+    max-width: 300px;
+  }
+
+  .glass-panel {
+    flex: 2 1 450px;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .code-panel {
+    flex: 1 1 300px;
+    max-width: 350px;
+  }
+
+  /* ---------- FORM ELEMENTS ---------- */
+  input, textarea, select, button {
+    width: 95%;
+    padding: 8px;
+    margin: 5px 0;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid #555;
+    background: #2b2b2b;
+    color: #eee;
+  }
+
+  textarea { resize: vertical; }
+
+  button {
+    background-color: #64b5f6;
+    color: white;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  button:hover {
+    background-color: #42a5f5;
+  }
+ button:active {
+    background-color: #f54a4a;
+  }
+  /* ---------- BOXES ---------- */
+  .box {
+    min-height: 60px;
+    border: 2px dashed #555;
+    padding: 8px;
+    margin-top: 8px;
+    border-radius: 8px;
+    background: #2b2b2b;
+  }
+
+  .item {
+    display: inline-block;
+    padding: 8px 12px;
+    margin: 4px;
+    background: #ffa726;
+    border-radius: 6px;
+    font-weight: bold;
+    animation: pop 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+
+  .stack-item {
+    display: block;
+    width: 70px;
+    margin: 6px auto;
+  }
+
+  .visited span {
+    display: inline-block;
+    margin: 4px;
+    padding: 6px 10px;
+    background: #81c784;
+    border-radius: 6px;
+    font-weight: bold;
+    color: #121212;
+  }
+
+  /* ---------- CODE ---------- */
+  .code {
+    text-align: left;
+    background: #111;
+    color: #eee;
+    padding: 10px;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 13px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .highlight {
+    background: #ffd54f;
+    color: #121212;
+  }
+
+  #graphSVG {
+    border: 1px solid #555;
+    background: #1e1e1e;
+    width: 100%;
+    height: 350px;
+    border-radius: 8px;
+  }
+
+  @keyframes pop {
+    from { transform: scale(0.6); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  /* ---------- HEADINGS ---------- */
+  h3 {
+    margin-top: 0;
+    color: #fff;
+  }
+  p {
+    margin: 6px 0 2px 0;
+    font-weight: bold;
+    color: #ccc;
+  }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 1200px) {
+    .container {
+      flex-direction: column;
+      align-items: center;
+    }
+    .input-panel, .glass-panel, .code-panel {
+      max-width: 90%;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h1>Glass Box Simulator</h1>
+
+<div class="container">
+
+  <!-- INPUT PANEL -->
+  <div class="panel input-panel">
+    <h3>Graph Input</h3>
+    <p>Nodes (space separated)</p>
+    <input id="nodes" value="A B C D E">
+
+    <p>Edges (one per line)</p>
+    <textarea id="edges">A B
+A C
+B D
+C E</textarea>
+
+    <p>Start Node</p>
+    <input id="startNode" value="A">
+
+    <p>Algorithm</p>
+    <select id="algo">
+      <option value="bfs">BFS (Queue)</option>
+      <option value="dfs">DFS (Stack)</option>
+    </select>
+
+    <p>Code Language</p>
+    <select id="lang">
+      <option value="js">JavaScript</option>
+      <option value="py">Python</option>
+  
+    </select>
+
+    <button onclick="buildGraph()">Build Graph</button>
+    <button onclick="nextStep()">Next Step</button>
+    <button onclick="autoRun()">Fast Run</button>
+    <button onclick="resetAll()">Reset</button>
+
+    <h4>Adjacency List</h4>
+    <div id="adj" class="box"></div>
+  </div>
+
+  <!-- GLASS BOX CENTER -->
+  <div class="panel glass-panel">
+     <h4>Graph Visualization</h4>
+    <svg id="graphSVG"></svg>
+     <h4>Visited</h4>
+    <div class="visited" id="visited" class="box"></div>
+    <h3>Glass Box</h3>
+    <p id="explain"><b>Waiting…</b></p>
+
+    <h4>Queue (BFS)</h4>
+    <div id="queue" class="box"></div>
+
+    <h4>Stack (DFS)</h4>
+    <div id="stack" class="box"></div>
+
+   
+
+   
+  </div>
+
+  <!-- CODE PANEL -->
+  <div class="panel code-panel">
+    <h3>Algorithm Code</h3>
+    <h4>Pseudocode</h4>
+    <div id="pseudo" class="code"></div>
+
+    <h4>Actual Code</h4>
+    <div id="actual" class="code"></div>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

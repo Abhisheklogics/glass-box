@@ -1,0 +1,82 @@
+body {
+  font-family: "Segoe UI", Arial;
+  background: linear-gradient(135deg, #e3f2fd, #fce4ec);
+  text-align: center;
+}
+
+h1 {
+  margin-bottom: 10px;
+}
+
+textarea {
+  width: 230px;
+  height: 120px;
+}
+
+.input, .glass {
+  display: inline-block;
+  vertical-align: top;
+  margin: 15px;
+  padding: 15px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.buttons button {
+  margin: 5px;
+  padding: 8px 15px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.explain {
+  min-height: 40px;
+  font-weight: bold;
+  color: #333;
+}
+
+.box {
+  min-height: 60px;
+  border: 2px dashed #333;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #fafafa;
+}
+
+.item {
+  display: inline-block;
+  padding: 8px 12px;
+  margin: 5px;
+  background: #ffe082;
+  border: 1px solid #333;
+  font-weight: bold;
+  border-radius: 6px;
+  animation: popIn 0.3s ease;
+}
+
+.stack-item {
+  display: block;
+  width: 70px;
+  margin: 6px auto;
+}
+
+#visited span {
+  display: inline-block;
+  margin: 5px;
+  padding: 6px 10px;
+  background: #90caf9;
+  border-radius: 6px;
+  font-weight: bold;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
