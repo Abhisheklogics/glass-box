@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>Glass Box Simulator </title>
 <style>
-  /* ---------- GLOBAL & DARK MODE ---------- */
+  
   body {
     font-family: "Segoe UI", Arial, sans-serif;
     background: #121212;
@@ -14,8 +14,8 @@
     text-align: center;
   }
 #actual {
-  margin-bottom: 4px;  /* each line ke baad thoda gap */
-  white-space: pre;    /* spaces & indentation preserve ho */
+  margin-bottom: 4px;  
+  white-space: pre;    
 }
 
   h1 {
@@ -32,7 +32,7 @@
     flex-wrap: wrap;
   }
 
-  /* ---------- PANELS ---------- */
+ 
   .panel {
     background: #1e1e1e;
     padding: 20px;
@@ -58,7 +58,7 @@
     max-width: 350px;
   }
 
-  /* ---------- FORM ELEMENTS ---------- */
+  
   input, textarea, select, button {
     width: 95%;
     padding: 8px;
@@ -87,7 +87,7 @@
  button:active {
     background-color: #f54a4a;
   }
-  /* ---------- BOXES ---------- */
+  
   .box {
     min-height: 60px;
     border: 2px dashed #555;
@@ -124,7 +124,7 @@
     color: #121212;
   }
 
-  /* ---------- CODE ---------- */
+  
   .code {
     text-align: left;
     background: #111;
@@ -155,7 +155,7 @@
     to { transform: scale(1); opacity: 1; }
   }
 
-  /* ---------- HEADINGS ---------- */
+  
   h3 {
     margin-top: 0;
     color: #fff;
@@ -166,7 +166,7 @@
     color: #ccc;
   }
 
-  /* ---------- RESPONSIVE ---------- */
+
   @media (max-width: 1200px) {
     .container {
       flex-direction: column;
@@ -184,17 +184,21 @@
 
 <div class="container">
 
-  <!-- INPUT PANEL -->
+  
   <div class="panel input-panel">
     <h3>Graph Input</h3>
     <p>Nodes (space separated)</p>
     <input id="nodes" value="A B C D E">
 
     <p>Edges (one per line)</p>
-    <textarea id="edges">A B
-A C
-B D
-C E</textarea>
+    <textarea id="edges">
+      A B
+      A C
+     B D
+      C E
+
+
+</textarea>
 
     <p>Start Node</p>
     <input id="startNode" value="A">
@@ -221,7 +225,7 @@ C E</textarea>
     <div id="adj" class="box"></div>
   </div>
 
-  <!-- GLASS BOX CENTER -->
+  
   <div class="panel glass-panel">
      <h4>Graph Visualization</h4>
     <svg id="graphSVG"></svg>
@@ -241,8 +245,9 @@ C E</textarea>
    
   </div>
 
-  <!-- CODE PANEL -->
+
   <div class="panel code-panel">
+  
     <h3>Algorithm Code</h3>
     <h4>Pseudocode</h4>
     <div id="pseudo" class="code"></div>

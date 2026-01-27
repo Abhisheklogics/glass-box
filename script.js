@@ -1,14 +1,14 @@
 let graph = {};
-let frontier = [];
-let visited = [];
+let front = [];
+let visited = []; 
 let algo = "";
 let step = 0;
 let current = null;
 
-// ------------------------ GRAPH BUILD ------------------------
+
 function buildGraph() {
   graph = {};
-  frontier = [];
+  front = [];
   visited = [];
   step = 0;
   current = null;
@@ -25,10 +25,12 @@ function buildGraph() {
     if (graph[u] && v && !graph[u].includes(v)) graph[u].push(v);
   });
 
-  frontier.push(start);
+  front.push(start);
 
   renderAdj();
-  renderFrontier();
+  renderFront();
+
+
   renderVisited();
   renderCode();
   drawGraph();
@@ -37,10 +39,7 @@ function buildGraph() {
     "Graph built. Click Next Step.";
 }
 
-// ------------------------ NEXT STEP ------------------------
 
-
-// ------------------------ RENDER ADJACENCY ------------------------
 function renderAdj() {
   let out = "";
   for (let k in graph) {
@@ -49,70 +48,74 @@ function renderAdj() {
   document.getElementById("adj").innerHTML = out;
 }
 
-// ------------------------ FRONTIER ------------------------
-function renderFrontier() {
+
+function renderFront() {
+  
   document.getElementById("queue").innerHTML = "";
+  
   document.getElementById("stack").innerHTML = "";
 
   if (algo === "bfs") {
-    frontier.forEach((n,i) => {
-      const d = document.createElement("div");
-      d.className = "item";
-      d.textContent = i===0 ? `FRONT → ${n}` : n;
-      document.getElementById("queue").appendChild(d);
+    front.forEach((n,i) => {
+    const d = document.createElement("div");
+    d.className = "item";
+    d.textContent = i===0 ? `FRONT → ${n}`: n;
+    document.getElementById("queue").appendChild(d);
     });
   }
 
   if (algo === "dfs") {
-    [...frontier].reverse().forEach((n,i) => {
-      const d = document.createElement("div");
-      d.className = "item stack-item";
-      d.textContent = i===0 ? `TOP → ${n}` : n;
-      document.getElementById("stack").appendChild(d);
+    [...front].reverse().forEach((n,i) => {
+    const d = document.createElement("div");
+    d.className = "item stack-item";
+    d.textContent = i===0 ? `TOP → ${n}` : n;
+    document.getElementById("stack").appendChild(d);
     });
   }
 }
 
-// ------------------------ VISITED ------------------------
+
 function renderVisited() {
+  
   const v = document.getElementById("visited");
   v.innerHTML = "";
-  visited.forEach(n => {
+ visited.forEach(n => {
     const s = document.createElement("span");
     s.textContent = n;
     v.appendChild(s);
+  
   });
 }
 
 
 
 function nextStep() {
-  if (frontier.length === 0 && step % 4 === 0) {
-    document.getElementById("explain").textContent = "Traversal finished. Frontier empty.";
-    renderCode(); // final highlight
+  if (front.length === 0 && step % 4 === 0) {
+    document.getElementById("explain").textContent = "Traversal finished. front empty.";
+    renderCode(); 
     updateGraphState(null);
     return;
   }
 
   const phase = step % 4;
 
-  if (phase === 0) { // REMOVE
-    if (frontier.length === 0) return;
+  if (phase === 0) { 
+    if (front.length === 0) return;
     if (algo === "bfs") {
-      current = frontier.shift();
+      current = front.shift();
       document.getElementById("explain").innerHTML =
         `<b>BFS</b>: Dequeued <b>${current}</b> from Queue (FIFO)`;
     } else {
-      current = frontier.pop();
+      current = front.pop();
       document.getElementById("explain").innerHTML =
         `<b>DFS</b>: Popped <b>${current}</b> from Stack (LIFO)`;
     }
   } 
-  else if (phase === 1) { // CHECK VISITED
+  else if (phase === 1) { 
     document.getElementById("explain").innerHTML =
       `Checking if <b>${current}</b> is already visited`;
   } 
-  else if (phase === 2) { // ADD TO VISITED
+  else if (phase === 2) { 
     if (!visited.includes(current)) {
       visited.push(current);
       document.getElementById("explain").innerHTML =
@@ -122,13 +125,13 @@ function nextStep() {
         `<b>${current}</b> already visited, skipping`;
     }
   } 
-  else if (phase === 3) { // ADD NEIGHBORS + HIGHLIGHT EDGES
+  else if (phase === 3) { 
     if (!visited.includes(current)) return;
 
     const neighbors = graph[current] || [];
     neighbors.forEach(n => {
-      if (!visited.includes(n) && !frontier.includes(n)) {
-        frontier.push(n);
+      if (!visited.includes(n) && !front.includes(n)) {
+        front.push(n);
       }
       highlightEdge(current, n);
     });
@@ -138,9 +141,11 @@ function nextStep() {
   }
 
   step++;
-  renderFrontier();
+  
+  renderFront();
+ 
   renderVisited();
-  renderCode();       // ✅ render code with highlight & dynamic variables
+  renderCode();       
   updateGraphState(current);
 }
 
@@ -148,7 +153,6 @@ function nextStep() {
   const lang = document.getElementById("lang").value;
   const phase = step % 4;
 
-  // ------------------------ PSEUDOCODE ------------------------
   const pseudo = algo === "bfs" ? [
     "queue = [start]",
     "visited = []",
@@ -173,10 +177,10 @@ function nextStep() {
   document.getElementById("pseudo").innerHTML =
     pseudo.map((l,i)=>`<div class="${i===pseudoLine?'highlight':''}">${l}</div>`).join("\n");
 
-  // ------------------------ ACTUAL CODE ------------------------
+
   let actual = [];
   let activeLines = [];
-  const frontierStr = `[${frontier.join(", ")}]`;
+  const frontierStr = `[${front.join(", ")}]`;
   const visitedStr = `[${visited.join(", ")}]`;
 
   if(lang==='js'){
@@ -187,10 +191,10 @@ function nextStep() {
         `let visited = ${visitedStr};`,
         ``,
         `while(queue.length > 0) {`,
-        `    let current = queue.shift();`,
-        `    if(!visited.includes(current)) {`,
-        `        visited.push(current);`,
-        `        for(let n of graph[current]) {`,
+        `  let current = queue.shift();`,
+        `  if(!visited.includes(current)) {`,
+        `    visited.push(current);`,
+        `  for(let n of graph[current]) {`,
         `            queue.push(n);`,
         `        }`,
         `    }`,
@@ -200,7 +204,9 @@ function nextStep() {
       else if(phase===1) activeLines=[5];
       else if(phase===2) activeLines=[6];
       else if(phase===3) activeLines=[7,8];
-    } else { // DFS
+    } 
+    
+    else { 
       actual = [
         `// DFS in JavaScript`,
         `let stack = ${frontierStr};`,
@@ -241,7 +247,8 @@ function nextStep() {
       else if(phase===1) activeLines=[5];
       else if(phase===2) activeLines=[6];
       else if(phase===3) activeLines=[7,8];
-    } else { // DFS
+    }
+    else { 
       actual = [
         `# DFS in Python`,
         `stack = ${frontierStr}`,
@@ -254,7 +261,8 @@ function nextStep() {
         `        for n in graph[current]:`,
         `            stack.append(n)`
       ];
-      if(phase===0) activeLines=[4];
+ 
+  if(phase===0) activeLines=[4];
       else if(phase===1) activeLines=[5];
       else if(phase===2) activeLines=[6];
       else if(phase===3) activeLines=[7,8];
@@ -270,7 +278,7 @@ function nextStep() {
         `#include <set>`,
         `#include <map>`,
         ``,
-        `std::queue<char> q; // frontier: ${frontier.join(", ")}`,
+        `std::queue<char> q; // frontier: ${front.join(", ")}`,
         `std::set<char> visited; // visited: ${visited.join(", ")}`,
         ``,
         `while(!q.empty()) {`,
@@ -287,7 +295,8 @@ function nextStep() {
       else if(phase===1) activeLines=[10];
       else if(phase===2) activeLines=[11];
       else if(phase===3) activeLines=[12,13];
-    } else { // DFS
+    } 
+    else { 
       actual = [
         `// DFS in C++`,
         `#include <iostream>`,
@@ -295,7 +304,7 @@ function nextStep() {
         `#include <set>`,
         `#include <map>`,
         ``,
-        `std::stack<char> s; // frontier: ${frontier.join(", ")}`,
+        `std::stack<char> s; // frontier: ${front.join(", ")}`,
         `std::set<char> visited; // visited: ${visited.join(", ")}`,
         ``,
         `while(!s.empty()) {`,
@@ -321,7 +330,7 @@ function nextStep() {
         `// BFS in Java`,
         `import java.util.*;`,
         ``,
-        `Queue<Character> q = new LinkedList<>(); // frontier: ${frontier.join(", ")}`,
+        `Queue<Character> q = new LinkedList<>(); // frontier: ${front.join(", ")}`,
         `Set<Character> visited = new HashSet<>(); // visited: ${visited.join(", ")}`,
         ``,
         `while(!q.isEmpty()) {`,
@@ -338,20 +347,20 @@ function nextStep() {
       else if(phase===1) activeLines=[7];
       else if(phase===2) activeLines=[8];
       else if(phase===3) activeLines=[9,10];
-    } else { // DFS
+    } else { 
       actual = [
         `// DFS in Java`,
         `import java.util.*;`,
         ``,
-        `Stack<Character> s = new Stack<>(); // frontier: ${frontier.join(", ")}`,
+        `Stack<Character> s = new Stack<>(); // frontier: ${front.join(", ")}`,
         `Set<Character> visited = new HashSet<>(); // visited: ${visited.join(", ")}`,
         ``,
         `while(!s.isEmpty()) {`,
         `    char current = s.pop();`,
         `    if(!visited.contains(current)) {`,
-        `        visited.add(current);`,
-        `        for(char n : graph.get(current)) {`,
-        `            s.push(n);`,
+        `     visited.add(current);`,
+        `       for(char n : graph.get(current)) {`,
+        `        s.push(n);`,
         `        }`,
         `    }`,
         `}`
@@ -419,9 +428,10 @@ function drawGraph() {
   });
 }
 
-// ------------------------ NODE + EDGE STATE ------------------------
+
 function updateGraphState(current) {
-  document.querySelectorAll("line").forEach(l=>{
+  
+document.querySelectorAll("line").forEach(l=>{
     l.setAttribute("stroke","#555");
     l.setAttribute("stroke-width","1");
   });
@@ -431,19 +441,19 @@ function updateGraphState(current) {
     if(!node) return;
 
     let color="#e0e0e0";
-    if(frontier.includes(n)) color="#64b5f6";
+    if(front.includes(n)) color="#64b5f6";
     if(visited.includes(n)) color="#81c784";
     if(n===current) color="#ff7043";
 
     node.setAttribute("fill",color);
   });
 
-  // highlight edges from current node to frontier
+
   if(current){
     graph[current].forEach(n=>{
       if(!visited.includes(n)){
-        const edge = [...document.querySelectorAll("line")].find(l=>l.dataset.from===current && l.dataset.to===n);
-        if(edge){
+  const edge = [...document.querySelectorAll("line")].find(l=>l.dataset.from===current && l.dataset.to===n);
+    if(edge){
           edge.setAttribute("stroke","#ff7043");
           edge.setAttribute("stroke-width","3");
         }
@@ -452,9 +462,9 @@ function updateGraphState(current) {
   }
 }
 
-// ------------------------ EDGE HIGHLIGHT ------------------------
 function highlightEdge(from,to){
   const edge = [...document.querySelectorAll("line")].find(l=>l.dataset.from===from && l.dataset.to===to);
+  console.log('ye rahe edge',edge)
   if(edge){
     edge.setAttribute("stroke","#ff7043");
     edge.setAttribute("stroke-width","3");
