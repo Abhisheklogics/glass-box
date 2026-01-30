@@ -13,6 +13,8 @@ let shortestPathEdges = new Set();
 let isRunning = false;   
 let runTimer = null;    
 
+let bfsParent = {};        // har node ke multiple parents
+let bfsLevel = {};         // BFS level (distance in edges)
 
 
 
@@ -84,9 +86,23 @@ function buildGraph() {
   }
 
   // ===== INIT =====
-  Object.keys(graph).forEach(n => dist[n] = Infinity);
-  dist[start] = 0;
-  front = [start];
+Object.keys(graph).forEach(n => dist[n] = Infinity);
+dist[start] = 0;
+front = [start];
+
+// 🔥 BFS specific init
+if (algo === "bfs") {
+  bfsParent = {};
+  bfsLevel = {};
+
+  Object.keys(graph).forEach(n => {
+    bfsParent[n] = [];
+    bfsLevel[n] = Infinity;
+  });
+
+  bfsLevel[start] = 0;
+}
+
 
   document.getElementById("internal").innerHTML = "";
 
@@ -123,7 +139,7 @@ function nextStep() {
 if (front.length === 0 && step % 4 === 0) {
 
   traversalFinished = true;   // 🔥 pehle
-
+buildShortestPath();
   if (algo === "dijkstra" || algo === "astar") {
     buildShortestPath();      // 🔥 path build
   }
@@ -190,9 +206,24 @@ if (front.length === 0 && step % 4 === 0) {
       const edge = manualGraph.edges.find(e => e.from === current && e.to === n);
       if (edge?.weight != null) weight = edge.weight;
 
-      if (algo === "bfs" || algo === "dfs") {
-        if (!visited.includes(n) && !front.includes(n)) front.push(n);
-      } else {
+    if (algo === "bfs") {
+
+  // 🔥 FIRST VISIT
+  if (bfsLevel[n] === Infinity) {
+    bfsLevel[n] = bfsLevel[current] + 1;
+    bfsParent[n].push(current);
+    front.push(n);
+  }
+  // 🔥 SAME LEVEL → MULTIPLE SHORTEST PATHS
+  else if (bfsLevel[n] === bfsLevel[current] + 1) {
+    bfsParent[n].push(current);
+  }
+
+}
+else if (algo === "dfs") {
+  if (!visited.includes(n) && !front.includes(n)) front.push(n);
+}
+ else {
         const g = dist[current];
         const h = algo === "astar" ? heuristic(n, goalNode) : 0;
         const newDist = g + weight;
@@ -344,26 +375,125 @@ function renderFront() {
   }
 }
 function buildShortestPath() {
-  shortestPathEdges.clear();   
 
-  let path = [];
-  let cur = goalNode;
+  shortestPathEdges.clear();
 
-  while (cur && prev[cur]) {
-    path.push(cur);
-    shortestPathEdges.add(`${prev[cur]}->${cur}`); 
-    cur = prev[cur];
+  // ================= BFS =================
+  if (algo === "bfs") {
+
+    // 🔥 CASE 1: goal diya hai → sirf uske BFS shortest paths
+    if (goalNode) {
+      let paths = [];
+
+      function dfs(node, path) {
+        path.push(node);
+
+        if (bfsLevel[node] === 0) {
+          paths.push([...path].reverse());
+        } else {
+          bfsParent[node].forEach(p => dfs(p, path));
+        }
+
+        path.pop();
+      }
+
+      dfs(goalNode, []);
+
+      let out = "<br><b>BFS Shortest Path(s):</b><br>";
+
+      paths.forEach(p => {
+        out += p.join(" → ") + "<br>";
+        for (let i = 0; i < p.length - 1; i++) {
+          shortestPathEdges.add(`${p[i]}->${p[i + 1]}`);
+        }
+      });
+
+      document.getElementById("explain").innerHTML += out;
+      return;
+    }
+
+    // 🔥 CASE 2: goal nahi diya → sab nodes ke BFS shortest paths
+    let out = "<br><b>BFS Shortest Paths from Start:</b><br>";
+
+    Object.keys(bfsLevel).forEach(n => {
+      if (bfsLevel[n] === Infinity) return;
+
+      let paths = [];
+
+      function dfs(node, path) {
+        path.push(node);
+
+        if (bfsLevel[node] === 0) {
+          paths.push([...path].reverse());
+        } else {
+          bfsParent[node].forEach(p => dfs(p, path));
+        }
+
+        path.pop();
+      }
+
+      dfs(n, []);
+
+      paths.forEach(p => {
+        out += p.join(" → ") + "<br>";
+        for (let i = 0; i < p.length - 1; i++) {
+          shortestPathEdges.add(`${p[i]}->${p[i + 1]}`);
+        }
+      });
+    });
+
+    document.getElementById("explain").innerHTML += out;
+    return;
   }
 
-  if (cur) path.push(cur);
+  // ================= DIJKSTRA / ASTAR =================
 
-  path.reverse();
+  // 🔥 CASE 1: goal diya hai
+  if (goalNode) {
+    let path = [];
+    let cur = goalNode;
 
-  document.getElementById("explain").innerHTML += `
-    <br><b>Shortest Path:</b> ${path.join(" → ")}
-    <br><b>Total Cost:</b> ${dist[goalNode]}
-  `;
+    while (cur && prev[cur]) {
+      path.push(cur);
+      shortestPathEdges.add(`${prev[cur]}->${cur}`);
+      cur = prev[cur];
+    }
+
+    if (cur) path.push(cur);
+    path.reverse();
+
+    document.getElementById("explain").innerHTML += `
+      <br><b>Shortest Path:</b> ${path.join(" → ")}
+      <br><b>Total Cost:</b> ${dist[goalNode]}
+    `;
+    return;
+  }
+
+  // 🔥 CASE 2: goal nahi diya → sabhi nodes ke paths
+  let out = "<br><b>Shortest Paths from Start:</b><br>";
+
+  Object.keys(dist).forEach(n => {
+    if (dist[n] === Infinity) return;
+
+    let cur = n;
+    let path = [];
+
+    while (cur && prev[cur]) {
+      path.push(cur);
+      shortestPathEdges.add(`${prev[cur]}->${cur}`);
+      cur = prev[cur];
+    }
+
+    if (cur) path.push(cur);
+    path.reverse();
+
+    out += `${path.join(" → ")} (Cost = ${dist[n]})<br>`;
+  });
+
+  document.getElementById("explain").innerHTML += out;
 }
+
+
 
 
 
@@ -739,7 +869,15 @@ function updateGraphState(current) {
   document.querySelectorAll("line").forEach(l => {
     l.setAttribute("stroke", "#555");
     l.setAttribute("stroke-width", "1");
-    l.removeAttribute("marker-end");
+    const e = manualGraph.edges.find(
+  x => x.from === l.dataset.from && x.to === l.dataset.to
+);
+
+if (e && e.directed) {
+  l.setAttribute("marker-end", "url(#arrow)");
+} else {
+  l.removeAttribute("marker-end");
+}
   });
 
   // ===== VISITED EDGES (BLUE) =====
@@ -781,7 +919,7 @@ function updateGraphState(current) {
   }
 
 // ===== SHORTEST PATH (ONLY DIJKSTRA / ASTAR) =====
-if (traversalFinished && (algo === "dijkstra" || algo === "astar")) {
+if (traversalFinished && (algo === "dijkstra" || algo === "astar" || algo === "bfs")) {
   shortestPathEdges.forEach(key => {
     const [u, v] = key.split("->");
 
