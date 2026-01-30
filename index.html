@@ -289,6 +289,43 @@ textarea {
     height: 60vh;
   }
 }
+.edge-popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.edge-popup.hidden {
+  display: none;
+}
+
+.edge-popup-box {
+  background: rgba(15,23,42,0.95);
+  padding: 20px;
+  border-radius: 14px;
+  width: 260px;
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+}
+
+.edge-popup-box h4 {
+  margin-bottom: 10px;
+  color: #38bdf8;
+}
+
+.popup-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.popup-actions button {
+  flex: 1;
+}
 
 </style>
 </head>
@@ -310,45 +347,54 @@ textarea {
     <option value="astar">A*</option>
   </select>
 
-    <select id="lang">
-      <option value="js">JavaScript</option>
-      <option value="py">Python</option>
-    </select>
+     <button onclick="deleteSelectedNode()">🗑 Delete Node</button>
   <label>Speed</label>
   <input type="range" id="speed" min="200" max="1500" step="100" value="200">
 </div>
 
 <div class="main-layout">
+ 
+<div class="side-panel">
+   
+  <h4>Graph Mode</h4>
+  <select id="graphMode" onchange="switchMode()">
+    <option value="input">Input</option>
+    <option value="manual">Build Graph</option>
+  </select>
 
-  <div class="side-panel">
-    <h4>Graph Mode</h4>
-    <select id="graphMode">
-      <option value="input">Input</option>
-      <option value="manual">Build Graph</option>
-    </select>
+  <!-- 👇 Wrap input controls -->
+  <!-- Nodes & Edges (hide in manual mode) -->
+<div id="nodeEdgeControls">
+  <h4>Nodes</h4>
+  <input id="nodes" value="A B C D E F">
 
-    <h4>Nodes</h4>
-    <input id="nodes" value="A B C D E F"> 
-
-    <h4>Edges</h4>
-    <textarea id="edges">
-A B
+  <h4>Edges</h4>
+  <textarea id="edges">A B
 A C
 B D
 B E
 C F</textarea>
+</div>
 
-    <h4>Start</h4>
-    <input id="startNode">
+<!-- Start & Goal (always visible) -->
+<div id="startGoalControls">
+  <h4>Start</h4>
+  <input id="startNode">
 
-    <h4>Goal</h4>
-    <input id="goalNode" placeholder=" only for dijkstra & astar">
+  <h4>Goal</h4>
+  <input id="goalNode">
+</div>
 
-    <button onclick="deleteSelectedNode()">🗑 Delete Node</button>
+ <select id="lang">
+      <option value="js">JavaScript</option>
+      <option value="py">Python</option>
+    </select>
 
-    <h4>Adjacency List</h4>
-    <div id="adj" class="box"></div>
-  </div>
+
+  <h4>Adjacency List</h4>
+  <div id="adj" class="box"></div>
+</div>
+
 
   <div class="center-panel">
     <svg id="graphSVG"></svg>
@@ -381,6 +427,25 @@ C F</textarea>
     <div id="actual" class="code"></div>
   </div>
 
+</div>
+<div id="edgePopup" class="edge-popup hidden">
+  <div class="edge-popup-box">
+    <h4>Create Edge</h4>
+
+    <label>Edge Type</label>
+    <select id="popupEdgeType">
+      <option value="undirected">Undirected</option>
+      <option value="directed">Directed</option>
+      <option value="weighted">Weighted</option>
+    </select>
+
+    <input id="popupEdgeWeight" placeholder="Weight" style="display:none">
+
+    <div class="popup-actions">
+      <button onclick="confirmEdge()">OK</button>
+      <button onclick="closeEdgePopup()">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <script src="script.js"></script>

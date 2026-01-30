@@ -863,6 +863,9 @@ function resetAll() {
 
   enableManualEditing();
 }
+let edgeFrom = null;
+let edgeTo = null;
+
 
 let reset=document.getElementById('reset')
 reset.addEventListener('click',resetAll)
@@ -871,15 +874,30 @@ select.addEventListener('change',switchMode)
 function switchMode() {
   const mode = document.getElementById("graphMode").value;
 
+  const nodeEdge = document.getElementById("nodeEdgeControls");
+
   if (mode === "manual") {
+    // hide only nodes & edges
+    nodeEdge.style.display = "none";
+
     resetAll();
-    document.getElementById("explain").textContent =
-      "Manual Mode: Click on canvas to create nodes.";
     enableManualMode();
+
+    document.getElementById("explain").textContent =
+      "Manual Mode: Build the graph visually. Set start and goal nodes.";
   } else {
+    // show everything
+    nodeEdge.style.display = "block";
+
     disableManualMode();
+
+    document.getElementById("explain").textContent =
+      "Input Mode: Define nodes and edges using text.";
   }
 }
+window.onload = switchMode;
+
+
 function enableManualMode() {
   const svg = document.getElementById("graphSVG");
   svg.addEventListener("click", manualCreateNode);
@@ -904,8 +922,15 @@ function manualCreateNode(e) {
   drawManualGraph();
 }
 
+function openEdgePopup() {
+  document.getElementById("edgePopup").classList.remove("hidden");
+}
 
-
+function closeEdgePopup() {
+  document.getElementById("edgePopup").classList.add("hidden");
+  manualSelectedNode = null;
+  drawManualGraph();
+}
 
 function manualNodeClick(node) {
   if (!manualSelectedNode) {
@@ -916,36 +941,52 @@ function manualNodeClick(node) {
 
   if (manualSelectedNode === node) return;
 
-  if (!manualEdgeType) {
-    manualEdgeType = prompt("Edge type: directed / undirected / weighted");
-    if (!["directed","undirected","weighted"].includes(manualEdgeType)) {
-      manualEdgeType = null;
-      manualSelectedNode = null;
+  edgeFrom = manualSelectedNode;
+  edgeTo = node;
+
+  openEdgePopup();
+}
+
+
+
+function addManualEdge(from, to) {
+  // duplicate edge check
+  if (manualGraph.edges.some(e => e.from === from && e.to === to)) return;
+
+  const type = document.getElementById("edgeType").value;
+
+  let weight = null;
+  let directed = type !== "undirected";
+
+  if (type === "weighted") {
+    const w = document.getElementById("edgeWeight").value;
+    weight = parseInt(w);
+
+    if (isNaN(weight)) {
+      alert("Please enter a valid weight");
       return;
     }
   }
 
-  addManualEdge(manualSelectedNode, node);
-  manualSelectedNode = null;
-  drawManualGraph();
-}
+  // main edge
+  manualGraph.edges.push({
+    from,
+    to,
+    weight,
+    directed
+  });
 
-function addManualEdge(from, to) {
-  if (manualGraph.edges.some(e => e.from === from && e.to === to)) return;
-
-  let weight = null;
-  let directed = manualEdgeType !== "undirected";
-
-  if (manualEdgeType === "weighted") {
-    weight = parseInt(prompt("Enter weight"));
-  }
-
-  manualGraph.edges.push({ from, to, weight, directed });
-
+  // reverse edge if undirected
   if (!directed) {
-    manualGraph.edges.push({ from: to, to: from, weight, directed });
+    manualGraph.edges.push({
+      from: to,
+      to: from,
+      weight,
+      directed
+    });
   }
 }
+
 let dragNode = null;
 
 let draggingNode = null;
@@ -986,34 +1027,102 @@ function drawManualGraph() {
   });
 
   // ----- NODES -----
-  Object.keys(manualGraph.nodes).forEach(n => {
-    const { x, y } = manualGraph.nodes[n];
+// ----- NODES -----
+Object.keys(manualGraph.nodes).forEach(n => {
+  const { x, y } = manualGraph.nodes[n];
 
-    const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
-    c.setAttribute("cx", x);
-    c.setAttribute("cy", y);
-    c.setAttribute("r", 18);
-    c.setAttribute("fill", n === manualSelectedNode ? "orange" : "#64b5f6");
+  const c = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "circle"
+  );
+  c.setAttribute("cx", x);
+  c.setAttribute("cy", y);
+  c.setAttribute("r", 18);
+  c.setAttribute(
+    "fill",
+    n === manualSelectedNode ? "orange" : "#64b5f6"
+  );
 
-    c.addEventListener("mousedown", (e) => {
-      draggingNode = n;
-      dragOffsetX = e.offsetX - x;
-      dragOffsetY = e.offsetY - y;
-      e.stopPropagation();
-    });
-
-    c.onclick = () => manualNodeClick(n);
-    svg.appendChild(c);
-
-    const t = document.createElementNS("http://www.w3.org/2000/svg","text");
-    t.setAttribute("x", x);
-    t.setAttribute("y", y + 5);
-    t.setAttribute("text-anchor", "middle");
-    t.setAttribute("fill", "#000");
-    t.textContent = n;
-    svg.appendChild(t);
+  // 🟢 Drag start
+  c.addEventListener("mousedown", (e) => {
+    draggingNode = n;
+    dragOffsetX = e.offsetX - x;
+    dragOffsetY = e.offsetY - y;
+    e.stopPropagation();
   });
+
+  // 🟢 CLICK = select / connect node
+  c.addEventListener("click", (e) => {
+    e.stopPropagation();     // ⛔ svg click
+    manualNodeClick(n);
+  });
+
+  svg.appendChild(c);
+
+  // ----- LABEL -----
+  const t = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "text"
+  );
+  t.setAttribute("x", x);
+  t.setAttribute("y", y + 5);
+  t.setAttribute("text-anchor", "middle");
+  t.setAttribute("fill", "#000");
+  t.setAttribute("font-weight", "bold");
+  t.textContent = n;
+
+  // 🟢 Text click bhi node click
+  t.addEventListener("click", (e) => {
+    e.stopPropagation();
+    manualNodeClick(n);
+  });
+
+  svg.appendChild(t);
+});
+
 }
+document.getElementById("popupEdgeType").addEventListener("change", e => {
+  document.getElementById("popupEdgeWeight").style.display =
+    e.target.value === "weighted" ? "block" : "none";
+});
+
+function confirmEdge() {
+  const type = document.getElementById("popupEdgeType").value;
+  let weight = null;
+  let directed = type !== "undirected";
+
+  if (type === "weighted") {
+    weight = parseInt(
+      document.getElementById("popupEdgeWeight").value
+    );
+    if (isNaN(weight)) {
+      alert("Enter valid weight");
+      return;
+    }
+  }
+
+  // duplicate check
+  if (manualGraph.edges.some(e => e.from === edgeFrom && e.to === edgeTo)) {
+    closeEdgePopup();
+    return;
+  }
+
+  manualGraph.edges.push({ from: edgeFrom, to: edgeTo, weight, directed });
+
+  if (!directed) {
+    manualGraph.edges.push({
+      from: edgeTo,
+      to: edgeFrom,
+      weight,
+      directed
+    });
+  }
+
+  document.getElementById("popupEdgeWeight").value = "";
+  closeEdgePopup();
+  drawManualGraph();
+}
+
 
 function deleteManualNode(node) {
   delete manualGraph.nodes[node];
