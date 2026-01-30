@@ -1,45 +1,323 @@
 let graph = {};
 let front = [];
-let visited = []; 
+let visited = [];
 let algo = "";
 let step = 0;
+let dist = {}; // distances for Dijkstra/A*
+let prev = {};
 let current = null;
+let  goalNode;
+
+let isRunning = false;   // algorithm running or not
+let runTimer = null;    // for auto-play (speed control)
+function showShortestPath() {
+  const endNode = goalNode || visited[visited.length - 1];
+  if (!endNode) return;
+
+  if (document.getElementById("finalPathShown")) return; // 🔒 lock
+
+  let path = [];
+  let cur = endNode;
+
+  while (cur !== undefined) {
+    path.unshift(cur);
+    cur = prev[cur];
+  }
+
+  const div = document.createElement("div");
+  div.id = "finalPathShown";
+  div.innerHTML = `
+    <hr>
+    <b>Shortest Path:</b> ${path.join(" → ")}<br>
+    <b>Total Cost:</b> ${dist[endNode]}
+  `;
+  document.getElementById("explain").appendChild(div);
+}
 
 
+
+
+
+document.getElementById("runBtn").addEventListener("click", runTraversal);
+document.getElementById("pauseBtn").addEventListener("click", stopAutoRun);
+document.getElementById("nextBtn").addEventListener("click", nextStep);
 function buildGraph() {
+
   graph = {};
   front = [];
   visited = [];
   step = 0;
   current = null;
+  dist = {};
+  prev = {};
 
   algo = document.getElementById("algo").value;
-  const nodes = document.getElementById("nodes").value.trim().split(/\s+/);
-  const edges = document.getElementById("edges").value.trim().split("\n");
+  const mode = document.getElementById("graphMode").value;
   const start = document.getElementById("startNode").value.trim();
+  goalNode = document.getElementById("goalNode")?.value?.trim() || null;
 
-  nodes.forEach(n => graph[n] = []);
+  // ===== BUILD GRAPH =====
+  if (mode !== "manual") {
+    const nodes = document.getElementById("nodes").value.trim().split(/\s+/);
+    const edges = document.getElementById("edges").value.trim().split("\n");
 
-  edges.forEach(e => {
-    const [u, v] = e.trim().split(/\s+/);
-    if (graph[u] && v && !graph[u].includes(v)) graph[u].push(v);
-  });
+    nodes.forEach(n => graph[n] = []);
+    manualGraph.edges = [];
 
-  front.push(start);
+    edges.forEach(e => {
+      const [u, v, w] = e.trim().split(/\s+/);
+      if (graph[u] && v) {
+        graph[u].push(v);
+        manualGraph.edges.push({
+          from: u,
+          to: v,
+          weight: w ? parseInt(w) : null
+        });
+      }
+    });
+  } else {
+    Object.keys(manualGraph.nodes).forEach(n => graph[n] = []);
+    manualGraph.edges.forEach(e => {
+      if (!graph[e.from].includes(e.to)) {
+        graph[e.from].push(e.to);
+      }
+    });
+  }
+
+  // ===== VALIDATION =====
+  if (!graph[start]) {
+    alert("❌ Invalid Start Node");
+    return;
+  }
+
+  if ((algo === "dijkstra" || algo === "astar") &&
+      !manualGraph.edges.some(e => e.weight != null)) {
+    alert("❌ Dijkstra / A* need WEIGHTED graph");
+    return;
+  }
+
+  if (algo === "astar" && !goalNode) {
+    alert("❌ A* needs a GOAL node");
+    return;
+  }
+
+  // ===== INIT =====
+  Object.keys(graph).forEach(n => dist[n] = Infinity);
+  dist[start] = 0;
+  front = [start];
+
+  document.getElementById("internal").innerHTML = "";
 
   renderAdj();
   renderFront();
-
-
   renderVisited();
   renderCode();
   drawGraph();
   updateGraphState(null);
-  document.getElementById("explain").textContent =
-    "Graph built. Click Next Step.";
+
+  document.getElementById("explain").innerHTML =
+    "Graph built. Click <b>Next Step</b>.";
 }
 
 
+
+function heuristic(a, b) {
+  const pa = manualGraph.nodes[a];
+  const pb = manualGraph.nodes[b];
+  if (!pa || !pb) return 0;
+
+  return Math.sqrt(
+    Math.pow(pa.x - pb.x, 2) +
+    Math.pow(pa.y - pb.y, 2)
+  );
+}
+
+
+
+let traversalFinished = false; // 🔒 ensure finished only once
+function nextStep() {
+  if (traversalFinished) return;
+
+ if (front.length === 0 && step % 4 === 0) {
+
+    if (algo === "dijkstra" || algo === "astar") {
+      showShortestPath();
+    }
+
+    document.getElementById("explain").innerHTML +=
+      "<br><b>Traversal finished.</b>";
+    updateGraphState(null);
+
+    traversalFinished = true; // ✅ lock further steps
+    clearInterval(runTimer);   // stop auto-run if running
+    isRunning = false;
+    return;
+  }
+
+  const phase = step % 4;
+
+  // ===== CLEAR INTERNAL PANEL =====
+  if (phase === 0) {
+    document.getElementById("internal").innerHTML = "";
+  }
+
+  // ===== PHASE 0: SELECT NODE =====
+  if (phase === 0) {
+    if (algo === "bfs") {
+      current = front.shift();
+    } else if (algo === "dfs") {
+      current = front.pop();
+    } else {
+      // 🔥 Dijkstra / A*
+      front.sort((a, b) => {
+        if (algo === "dijkstra") return dist[a] - dist[b];
+        else return (dist[a] + heuristic(a, goalNode)) - (dist[b] + heuristic(b, goalNode));
+      });
+      current = front.shift();
+    }
+
+    document.getElementById("explain").innerHTML =
+      `<b>${algo.toUpperCase()}</b>: Selected <b>${current}</b>
+       ${(algo !== "bfs" && algo !== "dfs") ? `(g=${dist[current]})` : ""}`;
+  }
+
+  // ===== PHASE 1: CHECK =====
+  else if (phase === 1) {
+    document.getElementById("explain").innerHTML =
+      `Checking if <b>${current}</b> is finalized`;
+  }
+
+  // ===== PHASE 2: MARK =====
+  else if (phase === 2) {
+    if (!visited.includes(current)) {
+      visited.push(current);
+      document.getElementById("explain").innerHTML =
+        `Finalized <b>${current}</b>`;
+    }
+  }
+
+  // ===== PHASE 3: EXPLORE =====
+  else {
+    if (!visited.includes(current)) return;
+
+    (graph[current] || []).forEach(n => {
+      let weight = 1;
+      const edge = manualGraph.edges.find(e => e.from === current && e.to === n);
+      if (edge?.weight != null) weight = edge.weight;
+
+      if (algo === "bfs" || algo === "dfs") {
+        if (!visited.includes(n) && !front.includes(n)) front.push(n);
+      } else {
+        const g = dist[current];
+        const h = algo === "astar" ? heuristic(n, goalNode) : 0;
+        const newDist = g + weight;
+
+        document.getElementById("internal").innerHTML += `
+          <div>
+            <b>${current} → ${n}</b><br>
+            g = ${g}<br>
+            weight = ${weight}<br>
+            ${algo === "astar" ? `h = ${h.toFixed(2)}<br>` : ""}
+            <b>${algo === "astar"
+              ? `f = ${(newDist + h).toFixed(2)}`
+              : `newDist = ${newDist}`}</b>
+            <hr>
+          </div>
+        `;
+
+        if (newDist < dist[n]) {
+          dist[n] = newDist;
+          prev[n] = current;
+          if (!front.includes(n)) front.push(n);
+        }
+      }
+
+      highlightEdge(current, n);
+    });
+
+    document.getElementById("explain").innerHTML =
+      `Processed neighbors of <b>${current}</b>`;
+  }
+
+  step++;
+  renderFront();
+  renderVisited();
+  renderCode();
+  updateGraphState(current);
+}
+
+function startAutoRun() {
+  clearInterval(runTimer); // just in case
+
+  isRunning = true;
+  disableManualEditing();
+
+  runTimer = setInterval(() => {
+    if (!traversalFinished) {
+      nextStep();
+    }
+  }, getSpeed());
+}
+function getSpeed() {
+  // Higher slider value = faster execution
+  const sliderVal = Number(document.getElementById("speed").value);
+  // Map 200-1500 to 1500-200
+  return 1600 - sliderVal;
+}
+
+document.getElementById("speed").addEventListener("input", () => {
+  if (isRunning) {
+    clearInterval(runTimer);
+    runTimer = setInterval(nextStep, getSpeed());
+  }
+});
+
+document.getElementById("speed").addEventListener("input", () => {
+  if (isRunning) {
+    clearInterval(runTimer);
+    runTimer = setInterval(nextStep, getSpeed());
+  }
+});
+
+function runTraversal() {
+  if (isRunning) return;
+
+  // 🔁 RESET EVERYTHING
+  traversalFinished = false;
+  step = 0;
+  visited = [];
+  front = [];
+  prev = {};
+  dist = {};
+
+  document.getElementById("explain").innerHTML = "";
+  document.getElementById("internal").innerHTML = "";
+
+  const mode = document.getElementById("graphMode").value;
+
+  if (mode === "manual") {
+    if (Object.keys(manualGraph.nodes).length === 0) {
+      alert("Create at least one node first");
+      return;
+    }
+  }
+
+  // rebuild graph + init dist/front
+  buildGraph();
+
+  // ▶️ start traversal
+  startAutoRun();
+}
+
+function stopAutoRun() {
+  isRunning = false;
+  clearInterval(runTimer);
+  runTimer = null;
+
+  enableManualEditing();
+
+  document.getElementById("explain").textContent = "Paused. You can edit graph now.";
+}
 function renderAdj() {
   let out = "";
   for (let k in graph) {
@@ -50,104 +328,160 @@ function renderAdj() {
 
 
 function renderFront() {
-  
-  document.getElementById("queue").innerHTML = "";
-  
-  document.getElementById("stack").innerHTML = "";
+  const q = document.getElementById("queue");
+  const s = document.getElementById("stack");
+  q.innerHTML = "";
+  s.innerHTML = "";
 
   if (algo === "bfs") {
-    front.forEach((n,i) => {
-    const d = document.createElement("div");
-    d.className = "item";
-    d.textContent = i===0 ? `FRONT → ${n}`: n;
-    document.getElementById("queue").appendChild(d);
+    s.style.display = "none";
+    q.style.display = "flex";
+
+    front.forEach((n, i) => {
+      const d = document.createElement("div");
+      d.className = "queue-item";
+      d.textContent = i === 0 ? `FRONT → ${n}` : n;
+      q.appendChild(d);
     });
   }
 
   if (algo === "dfs") {
-    [...front].reverse().forEach((n,i) => {
-    const d = document.createElement("div");
-    d.className = "item stack-item";
-    d.textContent = i===0 ? `TOP → ${n}` : n;
-    document.getElementById("stack").appendChild(d);
+    q.style.display = "none";
+    s.style.display = "flex";
+
+    [...front].forEach((n, i) => {
+      const d = document.createElement("div");
+      d.className = "stack-item";
+      d.textContent = i === front.length - 1 ? `TOP → ${n}` : n;
+      s.appendChild(d);
     });
   }
 }
 
 
+
 function renderVisited() {
-  
-  const v = document.getElementById("visited");
+  const v = document.getElementById("visitedBox");
   v.innerHTML = "";
- visited.forEach(n => {
+  visited.forEach(n => {
     const s = document.createElement("span");
     s.textContent = n;
     v.appendChild(s);
-  
+  });
+}
+
+ function drawGraph() {
+  const svg = document.getElementById("graphSVG");
+  const mode = document.getElementById("graphMode").value;
+
+  svg.innerHTML = `
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10"
+      refX="10" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#555"/>
+    </marker>
+  </defs>`;
+
+  const nodes = Object.keys(graph);
+  let positions = {};
+
+  // ===== NODE POSITIONS =====
+  if (mode === "manual") {
+    // use user-created positions
+    positions = { ...manualGraph.nodes };
+  } else {
+    // auto circular layout
+    const centerX = 200, centerY = 200, radius = 140;
+    nodes.forEach((n, i) => {
+      const angle = (2 * Math.PI / nodes.length) * i;
+      positions[n] = {
+        x: centerX + radius * Math.cos(angle),
+        y: centerY + radius * Math.sin(angle)
+      };
+    });
+  }
+
+ 
+for (let u in graph) {
+  graph[u].forEach(v => {
+    if (!positions[u] || !positions[v]) return;
+
+    const line = document.createElementNS(
+      "http://www.w3.org/2000/svg", "line"
+    );
+
+    line.setAttribute("x1", positions[u].x);
+    line.setAttribute("y1", positions[u].y);
+    line.setAttribute("x2", positions[v].x);
+    line.setAttribute("y2", positions[v].y);
+    line.setAttribute("stroke", "#555");
+    line.setAttribute("stroke-width", "1");
+    const edgeData = manualGraph.edges.find(
+  e => e.from === u && e.to === v
+);
+
+if (
+  edgeData &&
+  edgeData.directed &&
+  (algo === "bfs" || algo === "dfs" || algo === "dijkstra" || algo === "astar")
+) {
+  line.setAttribute("marker-end", "url(#arrow)");
+} else {
+  line.removeAttribute("marker-end");
+}
+    line.dataset.from = u;
+    line.dataset.to = v;
+
+    svg.appendChild(line);
+
+    // ✅ WEIGHT TEXT (always visible)
+    const edge = manualGraph.edges.find(e => e.from === u && e.to === v);
+    if (
+  edge &&
+  edge.weight != null &&
+  (algo === "dijkstra" || algo === "astar")
+) {
+      const t = document.createElementNS(
+        "http://www.w3.org/2000/svg", "text"
+      );
+      t.setAttribute("x", (positions[u].x + positions[v].x) / 2);
+      t.setAttribute("y", (positions[u].y + positions[v].y) / 2);
+      t.setAttribute("fill", "#ff9800");
+      t.textContent = edge.weight;
+      svg.appendChild(t);
+    }
+  });
+}
+
+
+  // ===== NODES =====
+  nodes.forEach(n => {
+    if (!positions[n]) return;
+
+    const c = document.createElementNS(
+      "http://www.w3.org/2000/svg", "circle"
+    );
+    c.setAttribute("cx", positions[n].x);
+    c.setAttribute("cy", positions[n].y);
+    c.setAttribute("r", 18);
+    c.setAttribute("id", `node-${n}`);
+    c.setAttribute("fill", "#e0e0e0");
+    svg.appendChild(c);
+
+    const t = document.createElementNS(
+      "http://www.w3.org/2000/svg", "text"
+    );
+    t.setAttribute("x", positions[n].x);
+    t.setAttribute("y", positions[n].y + 5);
+    t.setAttribute("text-anchor", "middle");
+    t.textContent = n;
+    svg.appendChild(t);
   });
 }
 
 
 
-function nextStep() {
-  if (front.length === 0 && step % 4 === 0) {
-    document.getElementById("explain").textContent = "Traversal finished. front empty.";
-    renderCode(); 
-    updateGraphState(null);
-    return;
-  }
 
-  const phase = step % 4;
-
-  if (phase === 0) { 
-    if (front.length === 0) return;
-    if (algo === "bfs") {
-      current = front.shift();
-      document.getElementById("explain").innerHTML =
-        `<b>BFS</b>: Dequeued <b>${current}</b> from Queue (FIFO)`;
-    } else {
-      current = front.pop();
-      document.getElementById("explain").innerHTML =
-        `<b>DFS</b>: Popped <b>${current}</b> from Stack (LIFO)`;
-    }
-  } 
-  else if (phase === 1) { 
-    document.getElementById("explain").innerHTML =
-      `Checking if <b>${current}</b> is already visited`;
-  } 
-  else if (phase === 2) { 
-    if (!visited.includes(current)) {
-      visited.push(current);
-      document.getElementById("explain").innerHTML =
-        `Added <b>${current}</b> to Visited list`;
-    } else {
-      document.getElementById("explain").innerHTML =
-        `<b>${current}</b> already visited, skipping`;
-    }
-  } 
-  else if (phase === 3) { 
-    if (!visited.includes(current)) return;
-
-    const neighbors = graph[current] || [];
-    neighbors.forEach(n => {
-      if (!visited.includes(n) && !front.includes(n)) {
-        front.push(n);
-      }
-      highlightEdge(current, n);
-    });
-
-    document.getElementById("explain").innerHTML =
-      `Pushed neighbors of <b>${current}</b> → ${neighbors.join(", ") || "None"}`;
-  }
-
-  step++;
-  
-  renderFront();
- 
-  renderVisited();
-  renderCode();       
-  updateGraphState(current);
-}
 
  function renderCode() {
   const lang = document.getElementById("lang").value;
@@ -376,62 +710,22 @@ function nextStep() {
     actual.map((l,i)=>`<div class="${activeLines.includes(i)?'highlight':''}">${l}</div>`).join("\n");
 }
 
+function disableManualEditing() {
+  document.getElementById("graphSVG").style.pointerEvents = "none";
+}
 
-
-
-function drawGraph() {
-  const svg = document.getElementById("graphSVG");
-  svg.innerHTML = `<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#555"/></marker></defs>`;
-
-  const nodes = Object.keys(graph);
-  const centerX=200, centerY=200, radius=140;
-  let positions = {};
-
-  nodes.forEach((n,i)=>{
-    const angle = (2*Math.PI/nodes.length)*i;
-    positions[n]={x:centerX+radius*Math.cos(angle), y:centerY+radius*Math.sin(angle)};
-  });
-
-  // edges
-  for(let u in graph){
-    graph[u].forEach(v=>{
-      const line = document.createElementNS("http://www.w3.org/2000/svg","line");
-      line.setAttribute("x1",positions[u].x);
-      line.setAttribute("y1",positions[u].y);
-      line.setAttribute("x2",positions[v].x);
-      line.setAttribute("y2",positions[v].y);
-      line.setAttribute("stroke","#555");
-      line.setAttribute("stroke-width","1");
-      line.setAttribute("marker-end","url(#arrow)");
-      line.dataset.from = u;
-      line.dataset.to = v;
-      svg.appendChild(line);
-    });
-  }
-
-  // nodes
-  nodes.forEach(n=>{
-    const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
-    c.setAttribute("cx",positions[n].x);
-    c.setAttribute("cy",positions[n].y);
-    c.setAttribute("r",18);
-    c.setAttribute("id",`node-${n}`);
-    c.setAttribute("fill","#e0e0e0");
-    svg.appendChild(c);
-
-    const t = document.createElementNS("http://www.w3.org/2000/svg","text");
-    t.setAttribute("x",positions[n].x);
-    t.setAttribute("y",positions[n].y+5);
-    t.setAttribute("text-anchor","middle");
-    t.textContent = n;
-    svg.appendChild(t);
-  });
+function enableManualEditing() {
+  document.getElementById("graphSVG").style.pointerEvents = "auto";
 }
 
 
+
+
+
+
+
 function updateGraphState(current) {
-  
-document.querySelectorAll("line").forEach(l=>{
+  document.querySelectorAll("line").forEach(l=>{
     l.setAttribute("stroke","#555");
     l.setAttribute("stroke-width","1");
   });
@@ -439,34 +733,285 @@ document.querySelectorAll("line").forEach(l=>{
   Object.keys(graph).forEach(n=>{
     const node = document.getElementById(`node-${n}`);
     if(!node) return;
-
     let color="#e0e0e0";
     if(front.includes(n)) color="#64b5f6";
     if(visited.includes(n)) color="#81c784";
     if(n===current) color="#ff7043";
-
     node.setAttribute("fill",color);
   });
 
-
+  // Highlight edges along current exploration
   if(current){
     graph[current].forEach(n=>{
       if(!visited.includes(n)){
-  const edge = [...document.querySelectorAll("line")].find(l=>l.dataset.from===current && l.dataset.to===n);
-    if(edge){
+        const edge = [...document.querySelectorAll("line")].find(l=>l.dataset.from===current && l.dataset.to===n);
+        if(edge){
           edge.setAttribute("stroke","#ff7043");
           edge.setAttribute("stroke-width","3");
         }
       }
     });
   }
+
+  // Highlight shortest path edges
+  Object.keys(prev).forEach(n=>{
+    const p = prev[n];
+    if(p){
+      const edge = [...document.querySelectorAll("line")].find(l=>l.dataset.from===p && l.dataset.to===n);
+      if(edge){
+        edge.setAttribute("stroke","#ffa000");
+        edge.setAttribute("stroke-width","3");
+      }
+    }
+  });
 }
 
-function highlightEdge(from,to){
-  const edge = [...document.querySelectorAll("line")].find(l=>l.dataset.from===from && l.dataset.to===to);
-  console.log('ye rahe edge',edge)
-  if(edge){
-    edge.setAttribute("stroke","#ff7043");
-    edge.setAttribute("stroke-width","3");
+
+function highlightEdge(from, to) {
+  const edge = [...document.querySelectorAll("line")]
+    .find(l => l.dataset.from === from && l.dataset.to === to);
+
+  if (!edge) return;
+
+  edge.setAttribute("stroke", "#ff7043");
+  edge.setAttribute("stroke-width", "3");
+
+  const e = manualGraph.edges.find(
+    x => x.from === from && x.to === to
+  );
+
+  // 🔥 arrow ONLY if directed
+  if (!e || !e.directed) {
+    edge.removeAttribute("marker-end");
+  } else {
+    edge.setAttribute("marker-end", "url(#arrow)");
   }
 }
+
+
+
+
+let manualGraph = {
+  nodes: {},   // {A:{x,y}}
+  edges: []    // {from,to,weight,directed}
+};
+let select=document.getElementById('graphMode')
+let manualNodeCount = 0;
+let manualSelectedNode = null;
+let manualEdgeType = null;
+let manualDragging = null;
+function resetAll() {
+  graph = {};
+  front = [];
+  visited = [];
+  step = 0;
+  current = null;
+  dist = {};
+  prev = {};
+  isRunning = false;
+  clearInterval(runTimer);
+  runTimer = null;
+
+  manualGraph = { nodes:{}, edges:[] };
+  manualNodeCount = 0;
+  manualSelectedNode = null;
+  manualEdgeType = null;
+
+  document.getElementById("graphSVG").innerHTML = "";
+  document.getElementById("queue").innerHTML = "";
+  document.getElementById("stack").innerHTML = "";
+  document.getElementById("visitedBox").innerHTML = "";
+  document.getElementById("adj").innerHTML = "";
+  document.getElementById("pseudo").innerHTML = "";
+  document.getElementById("actual").innerHTML = "";
+  document.getElementById("internal").innerHTML = "";
+  document.getElementById("explain").textContent = "Reset done.";
+
+  enableManualEditing();
+}
+
+let reset=document.getElementById('reset')
+reset.addEventListener('click',resetAll)
+
+select.addEventListener('change',switchMode)
+function switchMode() {
+  const mode = document.getElementById("graphMode").value;
+
+  if (mode === "manual") {
+    resetAll();
+    document.getElementById("explain").textContent =
+      "Manual Mode: Click on canvas to create nodes.";
+    enableManualMode();
+  } else {
+    disableManualMode();
+  }
+}
+function enableManualMode() {
+  const svg = document.getElementById("graphSVG");
+  svg.addEventListener("click", manualCreateNode);
+}
+
+function disableManualMode() {
+  const svg = document.getElementById("graphSVG");
+  svg.removeEventListener("click", manualCreateNode);
+}
+function manualCreateNode(e) {
+  if (isRunning) return;   // 🔒 lock when running
+  if (e.target.tagName !== "svg") return;
+
+  const rect = e.target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  const label = prompt("Node label (A, B, 1, 2 etc)");
+  if (!label) return;
+
+  manualGraph.nodes[label] = { x, y };
+  drawManualGraph();
+}
+
+
+
+
+function manualNodeClick(node) {
+  if (!manualSelectedNode) {
+    manualSelectedNode = node;
+    drawManualGraph();
+    return;
+  }
+
+  if (manualSelectedNode === node) return;
+
+  if (!manualEdgeType) {
+    manualEdgeType = prompt("Edge type: directed / undirected / weighted");
+    if (!["directed","undirected","weighted"].includes(manualEdgeType)) {
+      manualEdgeType = null;
+      manualSelectedNode = null;
+      return;
+    }
+  }
+
+  addManualEdge(manualSelectedNode, node);
+  manualSelectedNode = null;
+  drawManualGraph();
+}
+
+function addManualEdge(from, to) {
+  if (manualGraph.edges.some(e => e.from === from && e.to === to)) return;
+
+  let weight = null;
+  let directed = manualEdgeType !== "undirected";
+
+  if (manualEdgeType === "weighted") {
+    weight = parseInt(prompt("Enter weight"));
+  }
+
+  manualGraph.edges.push({ from, to, weight, directed });
+
+  if (!directed) {
+    manualGraph.edges.push({ from: to, to: from, weight, directed });
+  }
+}
+let dragNode = null;
+
+let draggingNode = null;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+
+function drawManualGraph() {
+  const svg = document.getElementById("graphSVG");
+  svg.innerHTML = "";
+
+  // ----- EDGES -----
+  manualGraph.edges.forEach(e => {
+    const a = manualGraph.nodes[e.from];
+    const b = manualGraph.nodes[e.to];
+
+    const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+    line.setAttribute("x1", a.x);
+    line.setAttribute("y1", a.y);
+    line.setAttribute("x2", b.x);
+    line.setAttribute("y2", b.y);
+    line.setAttribute("stroke", "#888");
+    line.setAttribute("stroke-width", "2");
+
+    if (e.directed) {
+      line.setAttribute("marker-end", "url(#arrow)");
+    }
+
+    svg.appendChild(line);
+
+    if (e.weight != null) {
+      const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+      t.setAttribute("x", (a.x + b.x) / 2);
+      t.setAttribute("y", (a.y + b.y) / 2);
+      t.setAttribute("fill", "orange");
+      t.textContent = e.weight;
+      svg.appendChild(t);
+    }
+  });
+
+  // ----- NODES -----
+  Object.keys(manualGraph.nodes).forEach(n => {
+    const { x, y } = manualGraph.nodes[n];
+
+    const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    c.setAttribute("cx", x);
+    c.setAttribute("cy", y);
+    c.setAttribute("r", 18);
+    c.setAttribute("fill", n === manualSelectedNode ? "orange" : "#64b5f6");
+
+    c.addEventListener("mousedown", (e) => {
+      draggingNode = n;
+      dragOffsetX = e.offsetX - x;
+      dragOffsetY = e.offsetY - y;
+      e.stopPropagation();
+    });
+
+    c.onclick = () => manualNodeClick(n);
+    svg.appendChild(c);
+
+    const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x", x);
+    t.setAttribute("y", y + 5);
+    t.setAttribute("text-anchor", "middle");
+    t.setAttribute("fill", "#000");
+    t.textContent = n;
+    svg.appendChild(t);
+  });
+}
+
+function deleteManualNode(node) {
+  delete manualGraph.nodes[node];
+
+  manualGraph.edges = manualGraph.edges.filter(
+    e => e.from !== node && e.to !== node
+  );
+
+  manualSelectedNode = null;
+  drawManualGraph();
+}
+
+
+function deleteSelectedNode() {
+  if (!manualSelectedNode) {
+    alert("Select a node first");
+    return;
+  }
+  deleteManualNode(manualSelectedNode);
+}
+
+const svg = document.getElementById("graphSVG");
+
+svg.addEventListener("mousemove", (e) => {
+  if (!draggingNode) return;
+
+  const rect = svg.getBoundingClientRect();
+  manualGraph.nodes[draggingNode].x = e.clientX - rect.left - dragOffsetX;
+  manualGraph.nodes[draggingNode].y = e.clientY - rect.top - dragOffsetY;
+
+  drawManualGraph();
+});
+
+svg.addEventListener("mouseup", () => draggingNode = null);
+svg.addEventListener("mouseleave", () => draggingNode = null);
