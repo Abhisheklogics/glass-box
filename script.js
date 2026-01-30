@@ -144,7 +144,7 @@ buildShortestPath();
     buildShortestPath();      // 🔥 path build
   }
 
-  document.getElementById("internal").innerHTML +=
+  document.getElementById("explain").innerHTML +=
     "<br><b>Traversal finished.</b>";
 
   updateGraphState(null);     // 🔥 ab highlight hoga
