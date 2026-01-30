@@ -138,8 +138,8 @@ function nextStep() {
 
 if (front.length === 0 && step % 4 === 0) {
 
-  traversalFinished = true;   // 🔥 pehle
-buildShortestPath();
+  traversalFinished = true;   
+buildShortestPath()
   if (algo === "dijkstra" || algo === "astar") {
     buildShortestPath();      // 🔥 path build
   }
@@ -308,7 +308,7 @@ function runTraversal() {
   dist = {};
 
   document.getElementById("explain").innerHTML = "";
- 
+  document.getElementById("internal").innerHTML = "";
 
   const mode = document.getElementById("graphMode").value;
 
@@ -1022,7 +1022,7 @@ function switchMode() {
     enableManualMode();
 
     document.getElementById("explain").textContent =
-      "Graph Mode:Active";
+      "Manual Mode: Build the graph visually. Set start and goal nodes.";
   } else {
     // show everything
     nodeEdge.style.display = "block";
@@ -1030,7 +1030,7 @@ function switchMode() {
     disableManualMode();
 
     document.getElementById("explain").textContent =
-      "Input Mode:Active";
+      "Input Mode: Define nodes and edges using text.";
   }
 }
 window.onload = switchMode;
