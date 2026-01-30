@@ -5,7 +5,7 @@
 <title>Glass Box Simulator</title>
 
 <style>
-/* ===== Root Colors ===== */
+
 :root {
   --bg: #0f172a;
   --panel: rgba(30, 41, 59, 0.85);
@@ -17,7 +17,7 @@
   --muted: #9ca3af;
 }
 
-/* ===== Global ===== */
+
 body {
   margin: 0;
   font-family: "Segoe UI", system-ui, sans-serif;
@@ -33,7 +33,7 @@ h1 {
   letter-spacing: 1px;
 }
 
-/* ===== Navbar ===== */
+
 .navbar {
   display: flex;
   align-items: center;
@@ -71,7 +71,7 @@ h1 {
   padding: 6px;
 }
 
-/* ===== Layout ===== */
+
 .main-layout {
   display: grid;
   grid-template-columns: 240px 1fr 300px;
@@ -79,7 +79,7 @@ h1 {
   padding: 12px;
 }
 
-/* ===== Side Panels ===== */
+
 .side-panel {
   background: var(--panel);
   backdrop-filter: blur(14px);
@@ -103,7 +103,7 @@ h1 {
   color: #fff;
 }
 
-/* ===== Inputs ===== */
+
 input, textarea, select, button {
   width: 100%;
   box-sizing: border-box;
@@ -120,7 +120,6 @@ textarea {
   min-height: 70px;
 }
 
-/* ===== Center Panel ===== */
 .center-panel {
   background: var(--panel);
   border-radius: 18px;
@@ -138,7 +137,7 @@ textarea {
   letter-spacing: 0.5px;
 }
 
-/* ===== Graph ===== */
+
 #graphSVG {
   height: 620px;
   width: 100%;
@@ -147,7 +146,7 @@ textarea {
   border: 1px solid var(--border);
 }
 
-/* ===== Info Row ===== */
+
 .info-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -170,7 +169,7 @@ textarea {
   overflow-y: auto;
 }
 
-/* ===== Queue & Stack Boxes ===== */
+
 #queue, #stack {
   display: flex;
   flex-direction: column; /* Stack items vertically */
@@ -183,9 +182,9 @@ textarea {
   border: 1px dashed var(--border);
 }
 
-/* Queue / Stack Items */
+
 .queue-item, .stack-item {
-  padding: 8px 12px;       /* Thoda aur padding */
+  padding: 8px 12px;      
   font-size: 14px;
  
   color: #ebecf0;
@@ -194,15 +193,15 @@ textarea {
   text-align: center;
   
   transition: transform 0.2s ease;
-  word-break: break-word;   /* Long text ko wrap karne ke liye */
-}
+  word-break: break-word; 
+ }
 
-/* Hover Effect */
+
 .queue-item:hover, .stack-item:hover {
   transform: scale(1.05);
 }
 
-/* ===== Visited Nodes ===== */
+
 #visitedBox {
   display: flex;
   flex-wrap: wrap;
@@ -241,7 +240,7 @@ textarea {
   color: var(--muted);
 }
 
-/* ===== Code Panel ===== */
+
 .code {
   line-height: 1.6;
   font-size: 13.5px;
@@ -258,13 +257,12 @@ textarea {
   border: 1px solid var(--border);
 }
 
-/* fake code line spacing */
 .code div,
 .code pre {
   margin: 6px;
 }
 
-/* ===== Scrollbar Styling ===== */
+
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -279,7 +277,7 @@ textarea {
   padding-left: 6px;
 }
 
-/* ===== Responsive ===== */
+
 @media (max-width: 1200px) {
   .main-layout {
     grid-template-columns: 1fr;
@@ -332,7 +330,7 @@ textarea {
 
 <body>
 
-<h1>Glass Box Graph Algorithm Simulator</h1>
+<h1>Glass Box Simulator</h1>
 
 <div class="navbar">
   <button id="runBtn">▶ Run</button>
@@ -414,7 +412,7 @@ C F</textarea>
     </div>
 
     <h4>Explanation</h4>
- 
+ <div id="internal" class="panel"></div>
     <p id="explain" class="panel"></p>
   </div>
 
