@@ -27,10 +27,40 @@ Start: 1
 
 A B C D E
 
+A B 3
+A C 2
+B D 4
+C E 5
 
-      A B 3
-      A C 2
-     B D 4
-      C E 5
+Start: A
 
+
+ 
+
+A B C D E
+
+A B 3
+A C 2
+B D 4
+C E 5
+
+//a Start
+A B C D E
+
+A B 3
+A C 2
+B D 4
+C E 5
+
+Start Node:A
+Goal Node:D
+
+A B C D E
+
+A B 3
+A C 2
+B D 4
+C E 5
+ Start Node:A
+Goal Node:E
 

@@ -38,9 +38,10 @@ function showShortestPath() {
 
 
 
+
 document.getElementById("runBtn").addEventListener("click", runTraversal);
 document.getElementById("pauseBtn").addEventListener("click", stopAutoRun);
-document.getElementById("nextBtn").addEventListener("click", nextStep);
+
 function buildGraph() {
 
   graph = {};
