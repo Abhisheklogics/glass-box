@@ -884,7 +884,7 @@ function switchMode() {
     enableManualMode();
 
     document.getElementById("explain").textContent =
-      "Manual Mode: Build the graph visually. Set start and goal nodes.";
+      "Hello PIYUSH.";
   } else {
     // show everything
     nodeEdge.style.display = "block";
