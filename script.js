@@ -3,36 +3,17 @@ let front = [];
 let visited = [];
 let algo = "";
 let step = 0;
-let dist = {}; // distances for Dijkstra/A*
+let dist = {}; 
 let prev = {};
 let current = null;
 let  goalNode;
+let visitedEdges = new Set();   
+let shortestPathEdges = new Set();
 
-let isRunning = false;   // algorithm running or not
-let runTimer = null;    // for auto-play (speed control)
-function showShortestPath() {
-  const endNode = goalNode || visited[visited.length - 1];
-  if (!endNode) return;
+let isRunning = false;   
+let runTimer = null;    
 
-  if (document.getElementById("finalPathShown")) return; // 🔒 lock
 
-  let path = [];
-  let cur = endNode;
-
-  while (cur !== undefined) {
-    path.unshift(cur);
-    cur = prev[cur];
-  }
-
-  const div = document.createElement("div");
-  div.id = "finalPathShown";
-  div.innerHTML = `
-    <hr>
-    <b>Shortest Path:</b> ${path.join(" → ")}<br>
-    <b>Total Cost:</b> ${dist[endNode]}
-  `;
-  document.getElementById("explain").appendChild(div);
-}
 
 
 
@@ -135,25 +116,28 @@ function heuristic(a, b) {
 
 
 
-let traversalFinished = false; // 🔒 ensure finished only once
+let traversalFinished = false; 
 function nextStep() {
   if (traversalFinished) return;
 
- if (front.length === 0 && step % 4 === 0) {
+if (front.length === 0 && step % 4 === 0) {
 
-    if (algo === "dijkstra" || algo === "astar") {
-      showShortestPath();
-    }
+  traversalFinished = true;   // 🔥 pehle
 
-    document.getElementById("explain").innerHTML +=
-      "<br><b>Traversal finished.</b>";
-    updateGraphState(null);
-
-    traversalFinished = true; // ✅ lock further steps
-    clearInterval(runTimer);   // stop auto-run if running
-    isRunning = false;
-    return;
+  if (algo === "dijkstra" || algo === "astar") {
+    buildShortestPath();      // 🔥 path build
   }
+
+  document.getElementById("explain").innerHTML +=
+    "<br><b>Traversal finished.</b>";
+
+  updateGraphState(null);     // 🔥 ab highlight hoga
+
+  clearInterval(runTimer);
+  isRunning = false;
+  return;
+}
+
 
   const phase = step % 4;
 
@@ -232,7 +216,7 @@ function nextStep() {
           if (!front.includes(n)) front.push(n);
         }
       }
-
+visitedEdges.add(`${current}->${n}`);
       highlightEdge(current, n);
     });
 
@@ -244,6 +228,7 @@ function nextStep() {
   renderFront();
   renderVisited();
   renderCode();
+ 
   updateGraphState(current);
 }
 
@@ -358,6 +343,29 @@ function renderFront() {
     });
   }
 }
+function buildShortestPath() {
+  shortestPathEdges.clear();   
+
+  let path = [];
+  let cur = goalNode;
+
+  while (cur && prev[cur]) {
+    path.push(cur);
+    shortestPathEdges.add(`${prev[cur]}->${cur}`); 
+    cur = prev[cur];
+  }
+
+  if (cur) path.push(cur);
+
+  path.reverse();
+
+  document.getElementById("explain").innerHTML += `
+    <br><b>Shortest Path:</b> ${path.join(" → ")}
+    <br><b>Total Cost:</b> ${dist[goalNode]}
+  `;
+}
+
+
 
 
 
@@ -508,7 +516,7 @@ if (
     "      stack.push(neighbor)"
   ];
 
-  const pseudoLine = Math.floor(step % pseudo.length);
+  const pseudoLine = Math.min(step % 4 + 2, pseudo.length - 1);
   document.getElementById("pseudo").innerHTML =
     pseudo.map((l,i)=>`<div class="${i===pseudoLine?'highlight':''}">${l}</div>`).join("\n");
 
@@ -726,46 +734,69 @@ function enableManualEditing() {
 
 
 function updateGraphState(current) {
-  document.querySelectorAll("line").forEach(l=>{
-    l.setAttribute("stroke","#555");
-    l.setAttribute("stroke-width","1");
+
+  // ===== RESET ALL EDGES =====
+  document.querySelectorAll("line").forEach(l => {
+    l.setAttribute("stroke", "#555");
+    l.setAttribute("stroke-width", "1");
+    l.removeAttribute("marker-end");
   });
 
-  Object.keys(graph).forEach(n=>{
+  // ===== VISITED EDGES (BLUE) =====
+  visitedEdges.forEach(key => {
+    const [u, v] = key.split("->");
+    const edge = [...document.querySelectorAll("line")]
+      .find(l => l.dataset.from === u && l.dataset.to === v);
+
+    if (edge) {
+      edge.setAttribute("stroke", "#90caf9");
+      edge.setAttribute("stroke-width", "2");
+    }
+  });
+
+  // ===== NODE COLORS =====
+  Object.keys(graph).forEach(n => {
     const node = document.getElementById(`node-${n}`);
-    if(!node) return;
-    let color="#e0e0e0";
-    if(front.includes(n)) color="#64b5f6";
-    if(visited.includes(n)) color="#81c784";
-    if(n===current) color="#ff7043";
-    node.setAttribute("fill",color);
+    if (!node) return;
+
+    let color = "#e0e0e0";        // normal
+    if (front.includes(n)) color = "#64b5f6";    // frontier
+    if (visited.includes(n)) color = "#81c784"; // visited
+    if (n === current) color = "#ff7043";        // current
+
+    node.setAttribute("fill", color);
   });
 
-  // Highlight edges along current exploration
-  if(current){
-    graph[current].forEach(n=>{
-      if(!visited.includes(n)){
-        const edge = [...document.querySelectorAll("line")].find(l=>l.dataset.from===current && l.dataset.to===n);
-        if(edge){
-          edge.setAttribute("stroke","#ff7043");
-          edge.setAttribute("stroke-width","3");
-        }
+  // ===== CURRENT STEP EDGE (ORANGE) =====
+  if (!traversalFinished && current) {
+    (graph[current] || []).forEach(n => {
+      const edge = [...document.querySelectorAll("line")]
+        .find(l => l.dataset.from === current && l.dataset.to === n);
+
+      if (edge) {
+        edge.setAttribute("stroke", "#ff7043");
+        edge.setAttribute("stroke-width", "3");
       }
     });
   }
 
-  // Highlight shortest path edges
-  Object.keys(prev).forEach(n=>{
-    const p = prev[n];
-    if(p){
-      const edge = [...document.querySelectorAll("line")].find(l=>l.dataset.from===p && l.dataset.to===n);
-      if(edge){
-        edge.setAttribute("stroke","#ffa000");
-        edge.setAttribute("stroke-width","3");
-      }
+// ===== SHORTEST PATH (ONLY DIJKSTRA / ASTAR) =====
+if (traversalFinished && (algo === "dijkstra" || algo === "astar")) {
+  shortestPathEdges.forEach(key => {
+    const [u, v] = key.split("->");
+
+    const edge = [...document.querySelectorAll("line")]
+      .find(l => l.dataset.from === u && l.dataset.to === v);
+
+    if (edge) {
+      edge.setAttribute("stroke", "#ffa000");
+      edge.setAttribute("stroke-width", "4");
     }
   });
 }
+
+}
+
 
 
 function highlightEdge(from, to) {
@@ -809,6 +840,8 @@ function resetAll() {
   current = null;
   dist = {};
   prev = {};
+  visitedEdges = new Set();
+
   isRunning = false;
   clearInterval(runTimer);
   runTimer = null;
