@@ -884,7 +884,7 @@ function switchMode() {
     enableManualMode();
 
     document.getElementById("explain").textContent =
-      "Hello PIYUSH.";
+      "Graph Mode:Active";
   } else {
     // show everything
     nodeEdge.style.display = "block";
@@ -892,7 +892,7 @@ function switchMode() {
     disableManualMode();
 
     document.getElementById("explain").textContent =
-      "Input Mode: Define nodes and edges using text.";
+      "Input Mode:Active";
   }
 }
 window.onload = switchMode;
