@@ -308,7 +308,7 @@ function runTraversal() {
   dist = {};
 
   document.getElementById("explain").innerHTML = "";
-  document.getElementById("internal").innerHTML = "";
+ 
 
   const mode = document.getElementById("graphMode").value;
 
