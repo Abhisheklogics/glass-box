@@ -1022,7 +1022,7 @@ function switchMode() {
     enableManualMode();
 
     document.getElementById("explain").textContent =
-      "Manual Mode: Build the graph visually. Set start and goal nodes.";
+      "Graph Mode:Active";
   } else {
     // show everything
     nodeEdge.style.display = "block";
@@ -1030,7 +1030,7 @@ function switchMode() {
     disableManualMode();
 
     document.getElementById("explain").textContent =
-      "Input Mode: Define nodes and edges using text.";
+      "Input Mode:Active";
   }
 }
 window.onload = switchMode;
