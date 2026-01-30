@@ -70,18 +70,18 @@ function buildGraph() {
 
   // ===== VALIDATION =====
   if (!graph[start]) {
-    alert("❌ Invalid Start Node");
+    alert("Invalid Start Node");
     return;
   }
 
   if ((algo === "dijkstra" || algo === "astar") &&
       !manualGraph.edges.some(e => e.weight != null)) {
-    alert("❌ Dijkstra / A* need WEIGHTED graph");
+    alert("Dijkstra / A* need WEIGHTED graph");
     return;
   }
 
   if (algo === "astar" && !goalNode) {
-    alert("❌ A* needs a GOAL node");
+    alert(" A* needs a GOAL node");
     return;
   }
 
@@ -133,7 +133,7 @@ function heuristic(a, b) {
 
 
 let traversalFinished = false; 
-function nextStep() {
+function nextStep() { 
   if (traversalFinished) return;
 
 if (front.length === 0 && step % 4 === 0) {
@@ -169,7 +169,7 @@ buildShortestPath()
     } else if (algo === "dfs") {
       current = front.pop();
     } else {
-      // 🔥 Dijkstra / A*
+      
       front.sort((a, b) => {
         if (algo === "dijkstra") return dist[a] - dist[b];
         else return (dist[a] + heuristic(a, goalNode)) - (dist[b] + heuristic(b, goalNode));
@@ -182,13 +182,13 @@ buildShortestPath()
        ${(algo !== "bfs" && algo !== "dfs") ? `(g=${dist[current]})` : ""}`;
   }
 
-  // ===== PHASE 1: CHECK =====
+ 
   else if (phase === 1) {
     document.getElementById("explain").innerHTML =
       `Checking if <b>${current}</b> is finalized`;
   }
 
-  // ===== PHASE 2: MARK =====
+  
   else if (phase === 2) {
     if (!visited.includes(current)) {
       visited.push(current);
@@ -197,7 +197,6 @@ buildShortestPath()
     }
   }
 
-  // ===== PHASE 3: EXPLORE =====
   else {
     if (!visited.includes(current)) return;
 
@@ -208,13 +207,13 @@ buildShortestPath()
 
     if (algo === "bfs") {
 
-  // 🔥 FIRST VISIT
+ 
   if (bfsLevel[n] === Infinity) {
     bfsLevel[n] = bfsLevel[current] + 1;
     bfsParent[n].push(current);
     front.push(n);
   }
-  // 🔥 SAME LEVEL → MULTIPLE SHORTEST PATHS
+ 
   else if (bfsLevel[n] === bfsLevel[current] + 1) {
     bfsParent[n].push(current);
   }
